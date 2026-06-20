@@ -171,7 +171,8 @@ export default function ChatArea({ userId, userEmail, isAdmin }: { userId: strin
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
             <motion.div 
@@ -239,6 +240,7 @@ export default function ChatArea({ userId, userEmail, isAdmin }: { userId: strin
           ))
         )}
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
       <div className="p-4 bg-white/80 backdrop-blur-md border-t border-amber-100/50">
