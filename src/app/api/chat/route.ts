@@ -30,10 +30,7 @@ export async function POST(req: Request) {
     const safeContent = `---BEGIN USER INPUT---\n${latestMessage.content}\n---END USER INPUT---`;
 
     const result = streamText({
-      model: google('gemini-3.5-flash', {
-        // Disable thinking for simple transformation tasks — saves 500-800 tokens per request
-        thinkingConfig: { thinkingBudget: 0 },
-      }),
+      model: google('gemini-3.5-flash'),
       system: systemInstruction,
       messages: [{ role: 'user' as const, content: safeContent }],
       onFinish: async ({ text }) => {
