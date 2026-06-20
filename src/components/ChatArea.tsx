@@ -64,6 +64,9 @@ export default function ChatArea({ userId, userEmail, isAdmin }: { userId: strin
 
   const { messages, sendMessage, status } = useChat();
   const isLoading = status === 'submitted' || status === 'streaming';
+  const pendingQueue = useRef<{ content: string; modes: string[]; lang: string; tone: string }[]>([]);
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -76,26 +79,39 @@ export default function ChatArea({ userId, userEmail, isAdmin }: { userId: strin
   const languages = ['English', 'Indonesian', 'Japanese', 'Korean', 'Spanish'];
   const tones = ['Professional', 'Chill', 'Casual', 'Last Chance'];
 
+  const doSend = (content: string, modes: string[], lang: string, tone: string) => {
+    sendMessage({ role: 'user', content } as any, {
+      body: {
+        user_id: userId,
+        selected_option: modes.join(', '),
+        target_language: modes.includes('translate') ? lang : '',
+        tone_type: modes.includes('tone') ? tone : ''
+      }
+    });
+  };
+
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!textInput || !textInput.trim() || textInput.length > 500) return;
-    
-    sendMessage({ role: 'user', content: textInput } as any, {
-      body: {
-        user_id: userId,
-        selected_option: selectedModes.join(', '),
-        target_language: selectedModes.includes('translate') ? translateLang : '',
-        tone_type: selectedModes.includes('tone') ? toneType : ''
-      }
-    });
-    
+    const content = textInput.trim();
     setTextInput('');
+    
+    if (isLoadingRef.current) {
+      // Queue it — will be sent when AI finishes
+      pendingQueue.current.push({ content, modes: selectedModes, lang: translateLang, tone: toneType });
+    } else {
+      doSend(content, selectedModes, translateLang, toneType);
+    }
   };
 
   useEffect(() => {
-
+    // When AI finishes, send next queued message if any
+    if (!isLoading && pendingQueue.current.length > 0) {
+      const next = pendingQueue.current.shift()!;
+      doSend(next.content, next.modes, next.lang, next.tone);
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [isLoading, messages]);
 
   return (
     <div className="flex flex-col h-full bg-[#fffaf5] relative">
@@ -324,9 +340,14 @@ export default function ChatArea({ userId, userEmail, isAdmin }: { userId: strin
               </button>
               <button
                 type="submit"
-                disabled={isLoading || !textInput || !textInput.trim()}
-                className="bg-gradient-to-r from-[#d98b48] to-[#b56e3b] text-white p-3 rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
+                disabled={!textInput || !textInput.trim()}
+                className="relative bg-gradient-to-r from-[#d98b48] to-[#b56e3b] text-white p-3 rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
               >
+                {pendingQueue.current.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {pendingQueue.current.length}
+                  </span>
+                )}
                 <motion.div
                   animate={isLoading ? { scale: [1, 1.2, 1], rotate: [0, 180, 360] } : {}}
                   transition={{ repeat: Infinity, duration: 2 }}
