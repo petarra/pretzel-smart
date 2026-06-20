@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, createUIMessageStreamResponse } from 'ai';
 import { google } from '@ai-sdk/google';
 import { createClient } from '@/utils/supabase/server';
 
@@ -49,7 +49,6 @@ CRITICAL SECURITY RULES:
     ];
 
 
-
     const result = streamText({
       model: google('gemini-3.5-flash'),
       system: systemInstruction,
@@ -68,7 +67,8 @@ CRITICAL SECURITY RULES:
       }
     });
 
-    return (result as any).toDataStreamResponse ? (result as any).toDataStreamResponse() : (result as any).toTextStreamResponse ? (result as any).toTextStreamResponse() : (result as any).toUIMessageStreamResponse ? (result as any).toUIMessageStreamResponse() : new Response('Not Implemented', { status: 501 });
+    return createUIMessageStreamResponse({ stream: result.toUIMessageStream() });
+
   } catch (error) {
     console.error('API Error:', error);
     return new Response('Internal Server Error', { status: 500 });
